@@ -1,0 +1,53 @@
+name: aingineer-data-service
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-datasets}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./data-service
+      dockerfile: Dockerfile
+    command: npm run dev
+    environment:
+      PORT: ${PORT:-3000}
+      DB_USER: ${DB_USER:-postgres}
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-datasets}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PORT: ${DB_PORT:-5432}
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./data-service:/app
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pg_data:
+  backend_node_modules:
+  frontend_node_modules:
