@@ -1,5 +1,10 @@
 # AIngineer Take-Home: Bring Your Own Data Service
 
+Prepared by:
+- Name: Eddy Lim Yee Yang
+- Email: limeddy1125@gmail.com
+- Date: 27 April 2026
+
 A containerized data workspace for uploading arbitrary tabular files, turning each upload into its own PostgreSQL table, and interacting with those datasets through both an API and a React UI.
 
 The assessment asks for CSV ingestion, independent datasets, CRUD operations, Docker Compose, and clear API documentation. This implementation covers the required flow and adds several optional enhancements: multiple uploads, pagination, filtering, XLSX support, a graphical interface, validation/error messages, and read-only SQL queries across uploaded datasets.
