@@ -34,6 +34,31 @@ This starts:
 
 Open the UI, upload one or more `.csv` or `.xlsx` files, then browse/edit rows or use the SQL query panel.
 
+### Fast Evaluation Path
+
+Sample files are included in [samples](samples) so reviewers can exercise the main flow without preparing their own data:
+
+- `customers-100.csv`
+- `people-100.csv`
+- `products-100.csv`
+- `Dummy-Excel.xlsx`
+
+Recommended flow:
+
+1. Start the stack with `docker compose up --build`.
+2. Open `http://localhost:5173`.
+3. Upload `samples/customers-100.csv` and `samples/people-100.csv`.
+4. Browse the generated `customers_100` and `people_100` datasets.
+5. Switch to the query tab and run:
+
+```sql
+SELECT *
+FROM customers_100 c
+JOIN people_100 p ON c."First Name" = p."First Name";
+```
+
+File names are normalized into table names, so hyphens become underscores. For example, `customers-100.csv` becomes `customers_100`.
+
 ## What To Look For
 
 | Assessment area | Implementation |
@@ -70,6 +95,7 @@ Bonus features included:
 |   |-- src/services     # CSV/XLSX parsing, database access, query execution
 |   `-- src/utils        # Schema inference, table-name cleanup, type coercion
 |-- frontend/            # Vite + React UI
+|-- samples/             # Ready-to-upload CSV/XLSX files for evaluation
 `-- docker-compose.yml   # API, UI, and PostgreSQL orchestration
 ```
 
@@ -108,8 +134,8 @@ Uploads one or more CSV/XLSX files. The field name is `files`.
 
 ```bash
 curl -X POST "http://localhost:3000/upload" \
-  -F "files=@./sales.csv" \
-  -F "files=@./customers.csv"
+  -F "files=@./samples/customers-100.csv" \
+  -F "files=@./samples/people-100.csv"
 ```
 
 Response:
@@ -119,11 +145,11 @@ Response:
   "message": "File processing completed",
   "results": [
     {
-      "file": "sales.csv",
+      "file": "customers-100.csv",
       "status": "success",
-      "table": "sales",
-      "primaryKey": "order_id",
-      "cols": ["order_id", "amount", "date"],
+      "table": "customers_100",
+      "primaryKey": "Index",
+      "cols": ["Index", "Customer Id", "First Name", "Last Name", "Company"],
       "rows": 100
     }
   ]
@@ -134,7 +160,7 @@ If a table already exists, the API protects it by default. To replace it:
 
 ```bash
 curl -X POST "http://localhost:3000/upload?overwrite=true" \
-  -F "files=@./sales.csv"
+  -F "files=@./samples/customers-100.csv"
 ```
 
 ### 2. List Datasets
@@ -146,28 +172,30 @@ curl "http://localhost:3000/datasets"
 Response:
 
 ```json
-["customers", "sales"]
+["customers_100", "people_100"]
 ```
 
 ### 3. Inspect Dataset Schema
 
 ```bash
-curl "http://localhost:3000/datasets/sales/schema"
+curl "http://localhost:3000/datasets/customers_100/schema"
 ```
 
 Response:
 
 ```json
 {
-  "table": "sales",
+  "table": "customers_100",
   "primaryKey": {
-    "name": "order_id",
+    "name": "Index",
     "isSerial": false
   },
   "columns": [
-    { "name": "order_id", "type": "text" },
-    { "name": "amount", "type": "double precision" },
-    { "name": "date", "type": "timestamp without time zone" }
+    { "name": "Index", "type": "integer" },
+    { "name": "Customer Id", "type": "text" },
+    { "name": "First Name", "type": "text" },
+    { "name": "Last Name", "type": "text" },
+    { "name": "Company", "type": "text" }
   ]
 }
 ```
@@ -175,22 +203,24 @@ Response:
 ### 4. Browse Rows
 
 ```bash
-curl "http://localhost:3000/datasets/sales?page=1&limit=25"
+curl "http://localhost:3000/datasets/customers_100?page=1&limit=25"
 ```
 
 Response:
 
 ```json
 {
-  "table": "sales",
+  "table": "customers_100",
   "page": 1,
   "limit": 25,
   "total": 100,
   "data": [
     {
-      "order_id": "A1001",
-      "amount": 42.5,
-      "date": "2026-04-01T00:00:00.000Z"
+      "Index": 1,
+      "Customer Id": "DD37Cf93aecA6Dc",
+      "First Name": "Sheryl",
+      "Last Name": "Baxter",
+      "Company": "Rasmussen Group"
     }
   ]
 }
@@ -199,7 +229,7 @@ Response:
 Filter by column values with query parameters:
 
 ```bash
-curl "http://localhost:3000/datasets/sales?country=MY&page=1&limit=10"
+curl "http://localhost:3000/datasets/customers_100?Country=Chile&page=1&limit=10"
 ```
 
 Unknown filter columns are ignored rather than interpolated into SQL.
@@ -207,14 +237,18 @@ Unknown filter columns are ignored rather than interpolated into SQL.
 ### 5. Insert Rows
 
 ```bash
-curl -X POST "http://localhost:3000/datasets/sales" \
+curl -X POST "http://localhost:3000/datasets/customers_100" \
   -H "Content-Type: application/json" \
   -d '{
     "data": [
       {
-        "order_id": "A1002",
-        "amount": 99.9,
-        "date": "2026-04-02"
+        "Index": 101,
+        "Customer Id": "NEW-CUSTOMER-101",
+        "First Name": "Eddy",
+        "Last Name": "Lim",
+        "Company": "AIngineer Demo",
+        "City": "Kuala Lumpur",
+        "Country": "Malaysia"
       }
     ]
   }'
@@ -225,7 +259,7 @@ Response:
 ```json
 {
   "message": "Rows inserted successfully",
-  "table": "sales",
+  "table": "customers_100",
   "insertedCount": 1
 }
 ```
@@ -233,11 +267,11 @@ Response:
 ### 6. Update Rows
 
 ```bash
-curl -X PUT "http://localhost:3000/datasets/sales" \
+curl -X PUT "http://localhost:3000/datasets/customers_100" \
   -H "Content-Type: application/json" \
   -d '{
-    "where": { "order_id": "A1002" },
-    "data": { "amount": 120.25 }
+    "where": { "Index": 101 },
+    "data": { "Company": "Updated Demo Company" }
   }'
 ```
 
@@ -246,7 +280,7 @@ Response:
 ```json
 {
   "message": "Rows updated successfully",
-  "table": "sales",
+  "table": "customers_100",
   "updatedCount": 1
 }
 ```
@@ -254,10 +288,10 @@ Response:
 ### 7. Delete Rows
 
 ```bash
-curl -X DELETE "http://localhost:3000/datasets/sales" \
+curl -X DELETE "http://localhost:3000/datasets/customers_100" \
   -H "Content-Type: application/json" \
   -d '{
-    "where": { "order_id": "A1002" }
+    "where": { "Index": 101 }
   }'
 ```
 
@@ -266,7 +300,7 @@ Response:
 ```json
 {
   "message": "Rows deleted successfully",
-  "table": "sales",
+  "table": "customers_100",
   "deletedCount": 1
 }
 ```
@@ -279,7 +313,7 @@ Only queries beginning with `SELECT` or `WITH` are accepted, and common mutation
 curl -X POST "http://localhost:3000/query" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "SELECT s.order_id, s.amount, c.name FROM sales s JOIN customers c ON s.customer_id = c.customer_id LIMIT 10"
+    "query": "SELECT * FROM customers_100 c JOIN people_100 p ON c.\"First Name\" = p.\"First Name\" LIMIT 10"
   }'
 ```
 
@@ -287,12 +321,10 @@ Response:
 
 ```json
 {
-  "rows": 1,
+  "rows": 10,
   "data": [
     {
-      "order_id": "A1001",
-      "amount": 42.5,
-      "name": "Ada"
+      "...": "query result columns depend on the uploaded sample data"
     }
   ]
 }
