@@ -2,7 +2,7 @@ import { parseCSV } from "../services/csv.service";
 import { createTable, dropTable, insertRows, tableExists } from "../services/db.service";
 import { parseXLSX } from "../services/xlsx.service";
 import { sanitizeTableName } from "../utils/db.util";
-import { inferSchema } from "../utils/schema.util";
+import { findPrimaryKey, inferSchema } from "../utils/schema.util";
 import fs from 'fs';
 
 export const handleUpload = async (req: any, res: any) => {
@@ -79,13 +79,22 @@ export const handleUpload = async (req: any, res: any) => {
 
             const schema = inferSchema(rows);
 
-            await createTable(tableName, schema);
+            let primaryKey = findPrimaryKey(rows);
+
+            if (!primaryKey) {
+                schema["id"] = "SERIAL"
+                primaryKey = "id";
+            }
+
+            await createTable(tableName, schema, primaryKey);
             await insertRows(tableName, rows);
 
             results.push({
                 file: file.originalname,
                 status: "success",
                 table: tableName,
+                primaryKey,
+                cols: Object.keys(schema),
                 rows: rows.length,
             });
 

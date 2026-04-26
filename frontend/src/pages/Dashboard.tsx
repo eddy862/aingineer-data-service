@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
+import DataTable from "../components/DataTable";
 
 export default function Dashboard() {
   const [activeDataset, setActiveDataset] = useState<string | null>(null);
@@ -9,25 +10,21 @@ export default function Dashboard() {
     <div style={{ display: "flex" }}>
       
       {/* LEFT */}
-      <Sidebar onSelectDataset={setActiveDataset} />
+      <Sidebar onSelectDataset={setActiveDataset} activeDataset={activeDataset} />
 
       {/* RIGHT */}
       <div style={{ flex: 1, padding: "1rem" }}>
         <h2>Dataset: {activeDataset || "None selected"}</h2>
 
-        {/* <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        {/* <Tabs activeTab={activeTab} setActiveTab={setActiveTab} /> */}
 
         {activeDataset && activeTab === "browse" && (
-          <DataTable table={activeDataset} />
+          <DataTable tableName={activeDataset} />
         )}
 
-        {activeDataset && activeTab === "query" && (
+        {/* {activeDataset && activeTab === "query" && (
           <QueryPanel />
-        )}
-
-        {activeDataset && activeTab === "crud" && (
-          <CrudPanel table={activeDataset} />
-        )} */}
+        )}*/}
       </div>
 
     </div>

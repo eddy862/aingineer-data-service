@@ -20,7 +20,7 @@ export const deleteRows = async (
 }
 
 export const updateRows = async (
-    tableName: string, 
+    tableName: string,
     where: Record<string, any>,
     data: Record<string, any>
 ): Promise<number> => {
@@ -43,7 +43,7 @@ export const updateRows = async (
     const query = `UPDATE "${tableName}" SET ${setClause} WHERE ${whereClause}`;
 
     const result = await pool.query(query, values);
-    
+
     return result.rowCount ?? 0;
 }
 
@@ -52,7 +52,7 @@ export const countRows = async (
     filters: Record<string, any>
 ): Promise<number> => {
     let query = `SELECT COUNT(*) FROM "${tableName}"`;
-    const values: any[] = []; 
+    const values: any[] = [];
     let idx = 1;
 
     // filtering
@@ -73,10 +73,17 @@ export const getRows = async (
     tableName: string,
     filters: Record<string, any>, // e.g. { column1: "value1", column2: 123 }
     limit: number,
-    offset: number
+    offset: number,
+    orderBy?: string,
+    selectColumns?: string[],
+    direction: "ASC" | "DESC" = "ASC"
 ): Promise<any[]> => {
-    let query = `SELECT * FROM "${tableName}"`;
-    const values: any[] = []; 
+    const selectClause = selectColumns && selectColumns.length > 0
+        ? selectColumns.map((column) => `"${column}"`).join(', ')
+        : '*';
+
+    let query = `SELECT ${selectClause} FROM "${tableName}"`;
+    const values: any[] = [];
     let idx = 1;
 
     // filtering
@@ -89,6 +96,10 @@ export const getRows = async (
         query += " WHERE " + conditions.join(" AND ");
     }
 
+    if (orderBy) {
+        query += ` ORDER BY "${orderBy}" ${direction}`;
+    }
+
     // pagination
     query += ` LIMIT $${idx++} OFFSET $${idx++}`;
     values.push(limit, offset);
@@ -96,6 +107,43 @@ export const getRows = async (
     const result = await pool.query(query, values);
     return result.rows;
 }
+
+export const isSerialPK = async (table: string, pk: string) => {
+  const res = await pool.query(
+    `
+    SELECT column_default
+    FROM information_schema.columns
+    WHERE table_name = $1
+      AND column_name = $2
+    `,
+    [table, pk]
+  );
+
+  const def = res.rows[0]?.column_default;
+  return def?.includes("nextval");
+};
+
+export const getPrimaryKey = async (tableName: string): Promise<string> => {
+    const result = await pool.query(
+        `
+        SELECT kcu.column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+            ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+        WHERE tc.table_name = $1
+            AND tc.constraint_type = 'PRIMARY KEY'
+            AND tc.table_schema = 'public'
+    `,
+        [tableName]
+    );
+
+    if (!result.rows.length) {
+        throw new Error(`No primary key found for table: ${tableName}`);
+    }
+
+    return result.rows[0].column_name;
+};
 
 export const getTableSchema = async (tableName: string): Promise<any[]> => {
     const query = `
@@ -140,20 +188,26 @@ export const dropTable = async (tableName: string) => {
 }
 
 export const createTable = async (
-    tableName: string, 
-    schema: Record<string, string>
+    tableName: string,
+    schema: Record<string, string>,
+    primaryKey: string
 ) => {
     const columns = Object.entries(schema)
-        .map(([key, type]) => `"${key}" ${type}`)
-        .join(', '); // results = "column1" TEXT, "column2" FLOAT
+        .map(([col, type]) => {
+            if (col === primaryKey) {
+                return `"${col}" ${type} PRIMARY KEY`;
+            }
+            return `"${col}" ${type}`;
+        })
+        .join(", ");
 
-    const query = `CREATE TABLE "${tableName}" (${columns})`;
+    const query = `CREATE TABLE "${tableName}" (${columns});`;
 
     await pool.query(query);
-}; 
+};
 
 export const insertRows = async (
-    tableName: string, 
+    tableName: string,
     rows: any[]
 ) => {
     if (rows.length === 0) return;

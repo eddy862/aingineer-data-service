@@ -1,5 +1,6 @@
-import { countRows, deleteRows, getAllTables, getRows, getTableSchema, insertRows, tableExists, updateRows } from "../services/db.service";
+import { countRows, deleteRows, getAllTables, getPrimaryKey, getRows, getTableSchema, insertRows, isSerialPK, updateRows } from "../services/db.service";
 import { validColumns } from "../utils/schema.util";
+import { coerceRow } from "../utils/typeCoercion.util";
 
 export const listDatasets = async (req: any, res: any) => {
     try {
@@ -16,10 +17,19 @@ export const listDatasets = async (req: any, res: any) => {
 export const getDatasetSchema = async (req: any, res: any) => {
     const tableName = req.params.name;
     try {
-        const cols = await getTableSchema(tableName);
+        const [cols, primaryKey] = await Promise.all([
+            getTableSchema(tableName),
+            getPrimaryKey(tableName),
+        ]);
+
+        const isSerial = await isSerialPK(tableName, primaryKey);
 
         res.status(200).json({
             table: tableName,
+            primaryKey: {
+                name: primaryKey,
+                isSerial: isSerial 
+            },
             columns: cols.map((col: any) => ({
                 name: col.column_name,
                 type: col.data_type
@@ -37,7 +47,7 @@ export const browseDataset = async (req: any, res: any) => {
     try {
         // pagination parameters
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 100;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 50);
         const offset = (page - 1) * limit;
 
         // filters
@@ -48,7 +58,11 @@ export const browseDataset = async (req: any, res: any) => {
         const filters: Record<string, any> = {};
 
         // validate filter columns
-        const validCols = await validColumns(tableName);
+        const [validCols, cols, primaryKey] = await Promise.all([
+            validColumns(tableName),
+            getTableSchema(tableName),
+            getPrimaryKey(tableName),
+        ]);
 
         for (const key in rawFilters) {
             if (validCols.has(key)) {
@@ -56,8 +70,14 @@ export const browseDataset = async (req: any, res: any) => {
             }
         }
 
+        // make sure primary key col is the first column in the result for consistent sorting and pagination
+        const orderedColumns = [
+            primaryKey,
+            ...cols.map((col: any) => col.column_name).filter((columnName: string) => columnName !== primaryKey),
+        ];
+
         const [rows, total] = await Promise.all([
-            getRows(tableName, filters, limit, offset),
+            getRows(tableName, filters, limit, offset, primaryKey, orderedColumns),
             countRows(tableName, filters)
         ]);
 
@@ -76,7 +96,7 @@ export const browseDataset = async (req: any, res: any) => {
 
 export const insertIntoDataset = async (req: any, res: any) => {
     const tableName = req.params.name;
-    const data = req.body; // expecting an array of objects
+    const { data } = req.body; // expecting an array of objects
 
     try {
         if (!Array.isArray(data) || data.length === 0) {
@@ -86,8 +106,8 @@ export const insertIntoDataset = async (req: any, res: any) => {
             });
         }
 
-        // validate columns in input data
-        const validCols = await validColumns(tableName);
+        const cols = await getTableSchema(tableName);
+        const validCols = new Set(cols.map((col: any) => col.column_name));
 
         for (const row of data) {
             for (const key in row) {
@@ -100,7 +120,35 @@ export const insertIntoDataset = async (req: any, res: any) => {
             }
         }
 
-        await insertRows(tableName, data);
+        const primaryKey = await getPrimaryKey(tableName);
+        const isSerial = await isSerialPK(tableName, primaryKey);
+
+        // if primary key is serial, remove it from input data to avoid conflicts
+        if (isSerial) {
+            for (const row of data) {
+                delete row[primaryKey];
+            }
+        }
+
+        const schemaMap = new Map<string, string>(
+            cols.map((c: any) => [c.column_name, c.data_type])
+        );
+
+        const coercedData = [];
+
+        for (const row of data) {
+            try {
+                const coerced = coerceRow(row, schemaMap);
+                coercedData.push(coerced);
+            } catch (err: any) {
+                return res.status(400).json({
+                    error: err.message,
+                    hint: "Ensure all values in the input data match their respective column types as defined in the dataset schema."
+                });
+            }
+        }
+
+        await insertRows(tableName, coercedData);
 
         res.status(201).json({
             message: 'Rows inserted successfully',
@@ -130,8 +178,8 @@ export const updateDataset = async (req: any, res: any) => {
             });
         }
 
-        // validate columns in where and data
-        const validCols = await validColumns(tableName);
+        const cols = await getTableSchema(tableName);
+        const validCols = new Set(cols.map((col: any) => col.column_name));
 
         for (const key in where) {
             if (!validCols.has(key)) {
@@ -151,7 +199,23 @@ export const updateDataset = async (req: any, res: any) => {
             }
         }
 
-        const updatedCount = await updateRows(tableName, where, data);
+        const schemaMap = new Map<string, string>(
+            cols.map((c: any) => [c.column_name, c.data_type])
+        );
+
+        const coercedData = {};
+  
+        try {
+            const coerced = coerceRow(data, schemaMap);
+            Object.assign(coercedData, coerced);
+        } catch (err: any) {
+            return res.status(400).json({
+                error: err.message,
+                hint: "Ensure all values in the update data match their respective column types as defined in the dataset schema."
+            });
+        }
+
+        const updatedCount = await updateRows(tableName, where, coercedData);
 
         if (updatedCount === 0) {
             return res.status(404).json({

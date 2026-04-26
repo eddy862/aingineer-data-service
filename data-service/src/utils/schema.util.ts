@@ -16,8 +16,50 @@ const mergeTypes = (types: string[]): string => {
   }, "BOOLEAN");
 };
 
+
+const PK_CANDIDATES = ["id", "ID", "Id", "user_id", "uuid", "index", "Index", "INDEX"]; // common PK column names to check first
+
+export const findPrimaryKey = (rows: any[]): string | null => {
+  if (rows.length === 0) return null;
+
+  const columns = Object.keys(rows[0]);
+
+  // first check common PK candidates
+  for (const col of columns) {
+    if (!PK_CANDIDATES.includes(col)) continue;
+
+    const values = rows.map(r => r[col]);
+
+    if (values.some(v => v === null || v === "")) continue;
+
+    const unique = new Set(values).size === values.length;
+
+    if (unique) return col;
+  }
+
+  // if no common candidates, check all columns based on uniqueness and type heuristics
+  for (const col of columns) {
+    const values = rows.map(r => r[col]);
+
+    if (values.some(v => v === null || v === "" || v === undefined)) continue;
+
+    const unique = new Set(values).size === values.length;
+    if (!unique) continue;
+
+    const isIdLike =
+      col.toLowerCase().includes("id") ||
+      col.toLowerCase().endsWith("_key");
+
+    if (isIdLike) {
+      return col;
+    }
+  }
+
+  return null;
+};
+
 const detectType = (value: any): string => {
-  if (value === null || value === "") return "NULL";
+  if (value === null || value === undefined || value === "") return "NULL";
 
   const val = String(value).trim();
 

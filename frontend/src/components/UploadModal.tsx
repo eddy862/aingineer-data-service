@@ -10,11 +10,13 @@ type Result = {
         hint?: string;
         table?: string;
         rows?: number;
+        cols?: string[];
+        primaryKey?: string;
     }[];
 }
 
 type Props = {
-    onSuccess: () => void;
+    onSuccess: (datasetName?: string) => void;
 }
 
 export default function UploadModal({ onSuccess }: Props) {
@@ -41,6 +43,10 @@ export default function UploadModal({ onSuccess }: Props) {
             console.log('Upload result:', res.data);
             setResult(res.data);
 
+            const uploadedDataset = res.data.results.find(
+                (r: any) => r.status === 'success' && r.table
+            )?.table;
+
             // detect conflicts 
             const conflicts = res.data.results.filter(
                 (r: any) =>
@@ -51,7 +57,7 @@ export default function UploadModal({ onSuccess }: Props) {
             // show msg which files already exist and ask for confirmation to overwrite
             if (conflicts.length > 0 && !overwrite) {
                 const fileList = conflicts.map((c: any) => c.file).join("\n");
-                const message = `The following datasets already exist:\n\n${fileList}\n\nOverwrite them?`;
+                const message = `The following datasets already exist:\n\n${fileList}\n\nOverwrite them? Or Rename the files and try again.`;
 
                 const confirm = window.confirm(message);
 
@@ -61,7 +67,7 @@ export default function UploadModal({ onSuccess }: Props) {
                 }
             }
 
-            onSuccess();
+            onSuccess(uploadedDataset);
 
         } catch (err: any) {
             console.error('Failed to upload files:', err);
@@ -108,6 +114,8 @@ export default function UploadModal({ onSuccess }: Props) {
                         {r.hint && ` Hint: ${r.hint}`}
                         {r.table && ` Created Table: ${r.table}`}
                         {r.rows !== undefined && ` Inserted Rows: ${r.rows}`}
+                        {r.cols && ` Columns: ${r.cols.join(", ")}`}
+                        {r.primaryKey && ` Primary Key: ${r.primaryKey}`}
                     </li>
                 ))}
             </ul>}
