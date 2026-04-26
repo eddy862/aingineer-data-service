@@ -81,7 +81,8 @@ export const insertIntoDataset = async (req: any, res: any) => {
     try {
         if (!Array.isArray(data) || data.length === 0) {
             return res.status(400).json({
-                error: "Invalid input: Expected a non-empty array of objects"
+                error: "Invalid input: Expected a non-empty array of objects",
+                hint: "Please provide an array of objects to insert into the dataset."
             });
         }
 
@@ -92,7 +93,8 @@ export const insertIntoDataset = async (req: any, res: any) => {
             for (const key in row) {
                 if (!validCols.has(key)) {
                     return res.status(400).json({
-                        error: `Invalid column "${key}" in input data`
+                        error: `Invalid column "${key}" in input data`,
+                        hint: `Please ensure all columns in the input data are valid. Valid columns are: ${[...validCols].join(", ")}.`
                     });
                 }
             }
@@ -123,7 +125,8 @@ export const updateDataset = async (req: any, res: any) => {
             !data
         ) {
             return res.status(400).json({
-                error: "Invalid input: Expected 'where' and 'data' to be objects"
+                error: "Invalid input: Expected 'where' and 'data' to be objects",
+                hint: "Please provide valid 'where' and 'data' objects."
             });
         }
 
@@ -133,7 +136,8 @@ export const updateDataset = async (req: any, res: any) => {
         for (const key in where) {
             if (!validCols.has(key)) {
                 return res.status(400).json({
-                    error: `Invalid column "${key}" in filter conditions`
+                    error: `Invalid column "${key}" in filter conditions`,
+                    hint: `Please ensure all columns in the filter conditions are valid. Valid columns are: ${[...validCols].join(", ")}.`
                 });
             }
         }
@@ -141,7 +145,8 @@ export const updateDataset = async (req: any, res: any) => {
         for (const key in data) {
             if (!validCols.has(key)) {
                 return res.status(400).json({
-                    error: `Invalid column "${key}" in update data`
+                    error: `Invalid column "${key}" in update data`,
+                    hint: `Please ensure all columns in the update data are valid. Valid columns are: ${[...validCols].join(", ")}.`
                 });
             }
         }
@@ -150,7 +155,8 @@ export const updateDataset = async (req: any, res: any) => {
 
         if (updatedCount === 0) {
             return res.status(404).json({
-                error: "No rows matched the filter conditions"
+                error: "No rows matched the filter conditions",
+                hint: "Please ensure the filter conditions are correct and match existing rows in the dataset."
             });
         }
 
@@ -172,13 +178,15 @@ export const deleteFromDataset = async (req: any, res: any) => {
     try {
         if (typeof where !== 'object' || !where) {
             return res.status(400).json({
-                error: "Invalid input: Expected an object with filter conditions"
+                error: "Invalid input: Expected an object with filter conditions",
+                hint: "Please provide a valid object with filter conditions to specify which rows to delete."
             });
         }
 
         if (!Object.keys(where).length) {
             return res.status(400).json({
-                error: "Filter conditions cannot be empty. Otherswise, all rows will be deleted. Please provide at least one filter condition."
+                error: "Filter conditions cannot be empty.",
+                hint: "Please provide at least one filter condition to specify which rows to delete."
             });
         }
 
@@ -187,7 +195,8 @@ export const deleteFromDataset = async (req: any, res: any) => {
         for (const key in where) {
             if (!validCols.has(key)) {
                 return res.status(400).json({
-                    error: `Invalid column "${key}" in filter conditions`
+                    error: `Invalid column "${key}" in filter conditions`,
+                    hint: `Please ensure all columns in the filter conditions are valid. Valid columns are: ${[...validCols].join(", ")}.`
                 });
             }
         }
@@ -196,7 +205,8 @@ export const deleteFromDataset = async (req: any, res: any) => {
 
         if (deletedCount === 0) {
             return res.status(404).json({
-                error: "No rows matched the filter conditions"
+                error: "No rows matched the filter conditions",
+                hint: "Please ensure the filter conditions are correct and match existing rows in the dataset."
             });
         }
 

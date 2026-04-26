@@ -27,7 +27,8 @@ export const handleUpload = async (req: any, res: any) => {
                 results.push({
                     file: file.originalname,
                     status: "failed",
-                    error: `Table "${tableName}" already exists.`
+                    error: `Table "${tableName}" already exists.`,
+                    hint: "Rename the file or set overwrite=true to replace the existing table."
                 });
                 continue;
             }
@@ -50,7 +51,8 @@ export const handleUpload = async (req: any, res: any) => {
                 results.push({
                     file: file.originalname,
                     status: "failed",
-                    error: "Unsupported file type for"
+                    error: "Unsupported file type for schema inference.",
+                    hint: "Please upload a CSV or XLSX file."
                 });
                 continue;
             }
@@ -59,7 +61,8 @@ export const handleUpload = async (req: any, res: any) => {
                 results.push({
                     file: file.originalname,
                     status: "failed",
-                    error: "No header row found."
+                    error: "No header row found.",
+                    hint: "Please ensure your file has a header row."
                 });
                 continue;
             }
@@ -68,7 +71,8 @@ export const handleUpload = async (req: any, res: any) => {
                 results.push({
                     file: file.originalname,
                     status: "failed",
-                    error: "File must contain at least one data row for schema inference."
+                    error: "File must contain at least one data row for schema inference.",
+                    hint: "Please ensure your file has data rows."
                 });
                 continue;
             }

@@ -15,7 +15,7 @@ const upload = multer({
             file.originalname.toLowerCase().endsWith(".xlsx");
 
         if (!isAllowed) {
-            return cb(new Error("Only CSV and Excel files are allowed"));
+            return cb(new Error("Only CSV and XLSX files are allowed"));
         }
 
         cb(null, true);
