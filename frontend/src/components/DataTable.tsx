@@ -210,21 +210,24 @@ export default function DataTable({ tableName }: Props) {
     };
 
     return (
-        <div style={{ padding: "1rem" }}>
-            <h3>Data Preview: {tableName}</h3>
+        <section className="panel panel--soft table-shell">
+            <div className="panel__body">
+            <h3 className="panel__title">Data Preview: {tableName}</h3>
+            <p className="panel__subtitle">Browse, filter, edit, and insert rows for the selected dataset.</p>
 
             {/* Filters */}
-            <div style={{ marginBottom: "1rem" }}>
-                <h4>Filters</h4>
+            <div className="panel__section">
+                <h4 className="section-title">Filters</h4>
 
                 {filters.map((f, index) => (
-                    <div key={index} style={{ marginBottom: "0.5rem" }}>
+                    <div key={index} className="control-row" style={{ marginBottom: "0.65rem" }}>
                         <select
                             value={f.column}
                             onChange={(e) =>
                                 updateFilter(index, "column", e.target.value)
                             }
                             disabled={loadingSchema}
+                            className="control"
                         >
                             <option value="">Select column</option>
                             {schema.map((col) => (
@@ -235,44 +238,46 @@ export default function DataTable({ tableName }: Props) {
                         </select>
 
                         <input
-                            style={{ marginLeft: "0.5rem" }}
                             placeholder="Value"
                             value={f.value}
                             onChange={(e) =>
                                 updateFilter(index, "value", e.target.value)
                             }
+                            className="control"
                         />
 
                         <button
-                            style={{ marginLeft: "0.5rem" }}
                             onClick={() => removeFilter(index)}
+                            className="btn"
                         >
                             Remove
                         </button>
                     </div>
                 ))}
 
-                <button onClick={addFilter}>+ Add Filter</button>
+                <div className="control-row">
+                    <button onClick={addFilter} className="btn">+ Add Filter</button>
 
-                <button
-                    style={{ marginLeft: "0.5rem" }}
-                    onClick={() => {
-                        setPage(1);
-                        fetchData();
-                    }}
-                    disabled={loading}
-                >
-                    Apply
-                </button>
+                    <button
+                        onClick={() => {
+                            setPage(1);
+                            fetchData();
+                        }}
+                        disabled={loading}
+                        className="btn btn--primary"
+                    >
+                        Apply
+                    </button>
+                </div>
             </div>
 
             {/* Loading */}
-            {loadingSchema && <p>Loading schema...</p>}
-            {loading && <p>Loading data...</p>}
+            {loadingSchema && <p className="muted">Loading schema...</p>}
+            {loading && <p className="muted">Loading data...</p>}
 
             {/* Insert New Row */}
-            <div style={{ marginBottom: "1rem", border: "1px solid #ddd", padding: "10px" }}>
-                <h4>Add New Row</h4>
+            <div className="panel__section">
+                <h4 className="section-title">Add New Row</h4>
 
                 {schema.map((col) => {
                     if (col.name === primaryKey?.name && primaryKey?.isSerial) {
@@ -283,11 +288,11 @@ export default function DataTable({ tableName }: Props) {
                         <input
                             key={col.name}
                             placeholder={col.name}
-                            style={{ marginRight: "5px", marginBottom: "5px" }}
                             value={newRow[col.name] || ""}
                             onChange={(e) =>
                                 setNewRow({ ...newRow, [col.name]: e.target.value })
                             }
+                            className="control control--tight"
                         />
                     );
                 })}
@@ -295,56 +300,37 @@ export default function DataTable({ tableName }: Props) {
                 <button
                     disabled={actionLoading}
                     onClick={insertRow}
+                    className="btn btn--primary"
                 >
                     Insert
                 </button>
             </div>
 
             {message && (
-                <div style={{
-                    marginBottom: "10px",
-                    padding: "8px",
-                    background: "#e6ffed",
-                    border: "1px solid #b7eb8f"
-                }}>
+                <div className="alert alert--success">
                     {message}
                 </div>
             )}
 
             {error && (
-                <div style={{
-                    marginBottom: "10px",
-                    padding: "8px",
-                    background: "#fff1f0",
-                    border: "1px solid #ffa39e"
-                }}>
+                <div className="alert alert--error">
                     {error}
                 </div>
             )}
 
             {/* Table */}
             {!loading && data.length > 0 && (
-                <div style={{ overflowX: "auto" }}>
-                    <table
-                        style={{
-                            borderCollapse: "collapse",
-                            width: "100%",
-                            marginBottom: "1rem"
-                        }}
-                    >
+                <div className="panel__section table-wrap">
+                    <table className="data-table">
                         <thead>
                             <tr>
                                 {schema.map((col) => (
                                     <th
                                         key={col.name}
-                                        style={{
-                                            border: "1px solid #ccc",
-                                            padding: "6px",
-                                            background: col.name === primaryKey?.name ? "#e6f0ff" : "#f5f5f5"
-                                        }}
+                                        className={col.name === primaryKey?.name ? "pk" : ""}
                                     >
                                         {col.name} {col.name === primaryKey?.name && "🔑"}
-                                        <div style={{ fontSize: "0.8rem", color: "#666" }}>
+                                        <div className="muted" style={{ fontSize: "0.78rem" }}>
                                             {col.type}
                                         </div>
                                     </th>
@@ -359,11 +345,7 @@ export default function DataTable({ tableName }: Props) {
                                     {schema.map((col) => (
                                         <td
                                             key={col.name}
-                                            style={{
-                                                border: "1px solid #ccc",
-                                                padding: "6px",
-                                                background: col.name === primaryKey?.name ? "#f0f7ff" : "white"
-                                            }}
+                                            className={col.name === primaryKey?.name ? "pk" : ""}
                                         >
                                             {editingRow === i ? (
                                                 <input
@@ -390,11 +372,12 @@ export default function DataTable({ tableName }: Props) {
                                                 <button
                                                     disabled={actionLoading}
                                                     onClick={() => updateRow(row)}
+                                                    className="btn btn--primary"
                                                 >
                                                     Save
                                                 </button>
 
-                                                <button onClick={() => setEditingRow(null)}>
+                                                <button onClick={() => setEditingRow(null)} className="btn">
                                                     Cancel
                                                 </button>
                                             </>
@@ -405,6 +388,7 @@ export default function DataTable({ tableName }: Props) {
                                                         setEditingRow(i);
                                                         setEditedRow({ ...row });
                                                     }}
+                                                    className="btn"
                                                 >
                                                     Edit
                                                 </button>
@@ -412,6 +396,7 @@ export default function DataTable({ tableName }: Props) {
                                                 <button
                                                     disabled={actionLoading}
                                                     onClick={() => deleteRow(row)}
+                                                    className="btn btn--danger"
                                                 >
                                                     Delete
                                                 </button>
@@ -427,10 +412,10 @@ export default function DataTable({ tableName }: Props) {
 
             {/* Empty */}
             {!loading && data.length === 0 && (
-                <p>No data available</p>
+                <div className="notice notice--empty">No data available</div>
             )}
 
-            <div style={{ marginBottom: "1rem" }}>
+            <div className="control-row" style={{ marginTop: "1rem" }}>
                 <label>Rows per page: </label>
 
                 <select
@@ -439,6 +424,7 @@ export default function DataTable({ tableName }: Props) {
                         setLimit(Math.min(Number(e.target.value), 50));
                         setPage(1);
                     }}
+                    className="control control--tight"
                 >
                     <option value={5}>5</option>
                     <option value={10}>10</option>
@@ -448,25 +434,28 @@ export default function DataTable({ tableName }: Props) {
             </div>
 
             {/* Pagination */}
-            <div>
+            <div className="control-row" style={{ justifyContent: "space-between", marginTop: "0.5rem" }}>
                 <button
                     disabled={page === 1 || loading}
                     onClick={() => setPage(page - 1)}
+                    className="btn"
                 >
                     Prev
                 </button>
 
-                <span style={{ margin: "0 1rem" }}>
+                <span className="muted">
                     Page {page} / {totalPages || 1}
                 </span>
 
                 <button
                     disabled={page >= totalPages || loading}
                     onClick={() => setPage(page + 1)}
+                    className="btn"
                 >
                     Next
                 </button>
             </div>
-        </div>
+            </div>
+        </section>
     );
 };

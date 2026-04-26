@@ -41,54 +41,38 @@ export default function Sidebar({ onSelectDataset, activeDataset }: Props) {
     }, []);
 
     return (
-        <div style={{
-            width: 260,
-            height: "100vh",
-            borderRight: "1px solid #ddd",
-            padding: "1rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            background: "#fafafa"
-        }}>
-            <h3 style={{ margin: 0 }}>Datasets</h3>
+        <aside className="workspace__sidebar">
+            <div>
+                <h3 className="sidebar-title">Datasets</h3>
+                <p className="sidebar-copy">Choose a dataset to browse, edit, and inspect its rows.</p>
+            </div>
 
             {/* Upload */}
             <UploadModal onSuccess={(datasetName) => getDatasets(datasetName)} />
 
+            <div className="sidebar-divider" />
+
             {/* Loading */}
-            {loading && <p style={{ fontSize: "0.9rem" }}>Loading...</p>}
+            {loading && <p className="sidebar-note">Loading...</p>}
 
             {/* Empty */}
             {!loading && datasets.length === 0 && (
-                <p style={{ fontSize: "0.9rem", color: "#666" }}>No datasets available</p>
+                <p className="sidebar-note">No datasets available</p>
             )}
 
+            <p className="sidebar-note">Click a dataset to open its browse view.</p>
             {/* List */}
-            <div style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.4rem",
-                overflowY: "auto"
-            }}>
+            <div className="sidebar-list">
                 {datasets.map((d, i) => (
                     <button
                         key={i}
                         onClick={() => onSelectDataset(d)}
-                        style={{
-                            textAlign: "left",
-                            padding: "6px 8px",
-                            border: "1px solid #ddd",
-                            background: activeDataset === d ? "#007bff" : "white",
-                            color: activeDataset === d ? "white" : "black",
-                            cursor: "pointer",
-                            borderRadius: "4px"
-                        }}
+                        className={`sidebar-item ${activeDataset === d ? "sidebar-item--active" : ""}`}
                     >
                         {d}
                     </button>
                 ))}
             </div>
-        </div>
+        </aside>
     );
 }

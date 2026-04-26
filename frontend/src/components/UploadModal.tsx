@@ -82,31 +82,34 @@ export default function UploadModal({ onSuccess }: Props) {
     }
 
     return (
-        <div>
-            <h4>Upload Dataset</h4>
+        <div className="panel" style={{ background: "rgba(255, 255, 255, 0.04)", borderColor: "rgba(148, 163, 184, 0.22)", boxShadow: "none" }}>
+            <div className="panel__body">
+            <h4 className="sidebar-title" style={{ color: "var(--text-inverse)" }}>Upload Dataset</h4>
 
-            <p>Supported formats: CSV (.csv), Excel (.xlsx)</p>
+            <p className="sidebar-copy">Supported formats: CSV (.csv), Excel (.xlsx)</p>
 
             <input
                 type="file"
                 multiple
                 accept=".csv,.xlsx"
                 onChange={(e) => setFiles(e.target.files)}
+                className="control control--full"
+                style={{ background: "rgba(255, 255, 255, 0.06)", color: "var(--text-inverse)", borderColor: "rgba(148, 163, 184, 0.25)" }}
             />
 
             {files && (
-                <ul>
+                <ul className="sidebar-note" style={{ paddingLeft: "1.1rem" }}>
                     {Array.from(files).map((f, i) => (
                         <li key={i}>{f.name}</li>
                     ))}
                 </ul>
             )}
 
-            <button onClick={() => upload(false)} disabled={loading}>
+            <button onClick={() => upload(false)} disabled={loading} className="btn btn--primary" style={{ width: "100%" }}>
                 {loading ? "Uploading..." : "Upload"}
             </button>
 
-            {result && <ul>
+            {result && <ul className="sidebar-note" style={{ paddingLeft: "1.1rem" }}>
                 {result.results.map((r, i) => (
                     <li key={i}>
                         {r.status === "success" ? "✔" : "✖"} {r.file} — {r.status}
@@ -119,6 +122,7 @@ export default function UploadModal({ onSuccess }: Props) {
                     </li>
                 ))}
             </ul>}
+            </div>
         </div>
     );
 }

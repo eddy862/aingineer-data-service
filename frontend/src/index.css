@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+	color-scheme: light;
+	--bg: #e5e7eb;
+	--bg-alt: #f3f4f6;
+	--surface: #ffffff;
+	--surface-strong: #f8fafc;
+	--surface-dark: #111827;
+	--surface-dark-2: #1f2937;
+	--surface-dark-3: #0f172a;
+	--text: #0f172a;
+	--text-muted: #64748b;
+	--text-inverse: #f8fafc;
+	--border: #cbd5e1;
+	--border-dark: #334155;
+	--accent: #06b6d4;
+	--accent-strong: #0891b2;
+	--accent-soft: rgba(6, 182, 212, 0.14);
+	--success-bg: #dcfce7;
+	--success-border: #86efac;
+	--error-bg: #fee2e2;
+	--error-border: #fca5a5;
+	--shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+	--shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.06);
+	font-family: 'Inter', 'Segoe UI', sans-serif;
+	line-height: 1.5;
+	font-weight: 400;
+	color: var(--text);
+	background: var(--bg);
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	min-height: 100%;
+	margin: 0;
+}
+
+body {
+	background:
+		radial-gradient(circle at top left, rgba(6, 182, 212, 0.08), transparent 30%),
+		radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 28%),
+		var(--bg);
+}
+
+button,
+input,
+select,
+textarea {
+	font: inherit;
+}
+
+button {
+	transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+button:hover:not(:disabled) {
+	transform: translateY(-1px);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+	cursor: not-allowed;
+	opacity: 0.7;
+}
+
+::selection {
+	background: var(--accent-soft);
+}

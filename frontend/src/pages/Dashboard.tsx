@@ -1,32 +1,63 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import DataTable from "../components/DataTable";
+import QueryPanel from "../components/QueryPanel";
+import "../App.css";
 
 export default function Dashboard() {
   const [activeDataset, setActiveDataset] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("browse");
 
+  const handleDatasetSelect = (datasetName: string) => {
+    setActiveDataset(datasetName);
+    setActiveTab("browse");
+  };
+
   return (
-    <div style={{ display: "flex" }}>
-      
-      {/* LEFT */}
-      <Sidebar onSelectDataset={setActiveDataset} activeDataset={activeDataset} />
+    <div className="app-shell">
+      <div className="app-header">
+        <div>
+          <h2 className="app-header__title">Data Workspace</h2>
+          <p className="app-header__subtitle">
+            Browse datasets or switch to the global query panel.
+          </p>
+        </div>
 
-      {/* RIGHT */}
-      <div style={{ flex: 1, padding: "1rem" }}>
-        <h2>Dataset: {activeDataset || "None selected"}</h2>
-
-        {/* <Tabs activeTab={activeTab} setActiveTab={setActiveTab} /> */}
-
-        {activeDataset && activeTab === "browse" && (
-          <DataTable tableName={activeDataset} />
-        )}
-
-        {/* {activeDataset && activeTab === "query" && (
-          <QueryPanel />
-        )}*/}
+        <div className="app-header__tabs">
+          <button
+            onClick={() => setActiveTab("browse")}
+            className={`app-tab ${activeTab === "browse" ? "app-tab--active" : ""}`}
+          >
+            Browse
+          </button>
+          <button
+            onClick={() => setActiveTab("query")}
+            className={`app-tab ${activeTab === "query" ? "app-tab--active" : ""}`}
+          >
+            Query
+          </button>
+        </div>
       </div>
 
+      <div className="workspace">
+        {/* LEFT */}
+        <Sidebar onSelectDataset={handleDatasetSelect} activeDataset={activeDataset} />
+
+        {/* RIGHT */}
+        <div className="workspace__content">
+          {activeTab === "browse" && (
+            activeDataset ? (
+              <DataTable tableName={activeDataset} />
+            ) : (
+              <div className="notice notice--empty">
+                Select a dataset from the sidebar to browse it.
+              </div>
+            )
+          )}
+
+          {activeTab === "query" && <QueryPanel />}
+        </div>
+      </div>
     </div>
   );
 }
