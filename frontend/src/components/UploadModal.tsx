@@ -16,7 +16,7 @@ type Result = {
 }
 
 type Props = {
-    onSuccess: (datasetName?: string) => void;
+    onSuccess: (datasetName?: string, forceRefresh?: boolean) => void;
 }
 
 export default function UploadModal({ onSuccess }: Props) {
@@ -67,7 +67,7 @@ export default function UploadModal({ onSuccess }: Props) {
                 }
             }
 
-            onSuccess(uploadedDataset);
+            onSuccess(uploadedDataset, overwrite);
 
         } catch (err: any) {
             console.error('Failed to upload files:', err);

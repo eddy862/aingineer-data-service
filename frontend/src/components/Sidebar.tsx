@@ -3,7 +3,7 @@ import { api } from "../api/client";
 import UploadModal from "./UploadModal";
 
 type Props = {
-    onSelectDataset: (datasetName: string) => void;
+    onSelectDataset: (datasetName: string, forceRefresh?: boolean) => void;
     activeDataset?: string | null;
 };
 
@@ -11,7 +11,7 @@ export default function Sidebar({ onSelectDataset, activeDataset }: Props) {
     const [datasets, setDatasets] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const getDatasets = async (preferredDataset?: string) => {
+    const getDatasets = async (preferredDataset?: string, forceRefresh?: boolean) => {
         setLoading(true);
         try {
             const res = await api.get('/datasets');
@@ -19,7 +19,7 @@ export default function Sidebar({ onSelectDataset, activeDataset }: Props) {
             setDatasets(res.data);
 
             if (preferredDataset && res.data.includes(preferredDataset)) {
-                onSelectDataset(preferredDataset);
+                onSelectDataset(preferredDataset, forceRefresh);
             } else if (!activeDataset && res.data.length > 0) {
                 onSelectDataset(res.data[0]);
             }
@@ -48,7 +48,9 @@ export default function Sidebar({ onSelectDataset, activeDataset }: Props) {
             </div>
 
             {/* Upload */}
-            <UploadModal onSuccess={(datasetName) => getDatasets(datasetName)} />
+            <UploadModal
+                onSuccess={(datasetName, forceRefresh) => getDatasets(datasetName, forceRefresh)}
+            />
 
             <div className="sidebar-divider" />
 

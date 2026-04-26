@@ -7,9 +7,15 @@ import "../App.css";
 export default function Dashboard() {
   const [activeDataset, setActiveDataset] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("browse");
+  const [refreshToken, setRefreshToken] = useState(0);
 
-  const handleDatasetSelect = (datasetName: string) => {
+  const handleDatasetSelect = (datasetName: string, forceRefresh = false) => {
     setActiveDataset(datasetName);
+
+    if (forceRefresh || datasetName === activeDataset) {
+      setRefreshToken((current) => current + 1);
+    }
+
     setActiveTab("browse");
   };
 
@@ -47,7 +53,7 @@ export default function Dashboard() {
         <div className="workspace__content">
           {activeTab === "browse" && (
             activeDataset ? (
-              <DataTable tableName={activeDataset} />
+              <DataTable tableName={activeDataset} refreshToken={refreshToken} />
             ) : (
               <div className="notice notice--empty">
                 Select a dataset from the sidebar to browse it.

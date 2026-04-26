@@ -18,9 +18,10 @@ type PrimaryKey = {
 
 type Props = {
     tableName: string;
+    refreshToken?: number;
 }
 
-export default function DataTable({ tableName }: Props) {
+export default function DataTable({ tableName, refreshToken = 0 }: Props) {
     const [data, setData] = useState<any[]>([]);
     const [schema, setSchema] = useState<Column[]>([]);
     const [primaryKey, setPrimaryKey] = useState<PrimaryKey | null>(null);
@@ -108,13 +109,13 @@ export default function DataTable({ tableName }: Props) {
             fetchSchema();
             setPage(1);
         }
-    }, [tableName]);
+    }, [tableName, refreshToken]);
 
     useEffect(() => {
         if (tableName) {
             fetchData();
         }
-    }, [tableName, page, limit]);
+    }, [tableName, page, limit, refreshToken]);
 
     const totalPages = Math.ceil(total / limit);
 
