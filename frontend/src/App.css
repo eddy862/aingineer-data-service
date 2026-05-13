@@ -146,6 +146,10 @@
 	padding: 0.55rem 0.7rem;
 }
 
+.control--operator {
+	min-width: 72px;
+}
+
 .control--full {
 	width: 100%;
 }

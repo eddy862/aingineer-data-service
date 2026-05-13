@@ -37,7 +37,7 @@ export const findPrimaryKey = (rows: any[]): string | null => {
     if (unique) return col;
   }
 
-  // if no common candidates, check all columns based on uniqueness and type heuristics
+  // if no common candidates, check all columns based on uniqueness and type heuristics, but only consider the name if it contains "id" or ends with "_key" - this reduces false positives on non-ID columns that happen to be unique
   for (const col of columns) {
     const values = rows.map(r => r[col]);
 
@@ -74,10 +74,10 @@ const detectType = (value: any): string => {
     return "TEXT";
   }
 
-  // float
+  // float : if it has a decimal point and is a valid number
   if (/^-?\d+\.\d+$/.test(val)) return "FLOAT";
 
-  // ISO date
+  // ISO date: if it can be parsed as a date and matches common date formats
   if (!isNaN(Date.parse(val))) return "TIMESTAMP";
 
   return "TEXT";
@@ -96,6 +96,7 @@ export const inferSchema = (rows: any[]): Record<string, string> => {
       if (!schema[key]) schema[key] = [];
 
       const type = FORCE_TEXT_COLUMN.test(key) ? "TEXT" : detectType(row[key]);
+
       if (type !== "NULL" && !schema[key].includes(type)) {
         schema[key].push(type);
       }
@@ -109,7 +110,7 @@ export const inferSchema = (rows: any[]): Record<string, string> => {
   }
 
   for (const key in schema) {
-    if (schema[key] === undefined) continue;
+    if (schema[key] === undefined) continue; 
     if (schema[key].length === 0) {
       finalSchema[key] = "TEXT"; // default to TEXT if all values are null/empty
     } else {

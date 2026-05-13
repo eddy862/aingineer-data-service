@@ -1,4 +1,4 @@
-name: aingineer-data-service
+name: data-service
 
 services:
   db:

@@ -1,5 +1,33 @@
 import pool from '../db'
 
+export const filterOperators = ["=", ">", "<", "<=", ">="] as const;
+export type FilterOperator = typeof filterOperators[number];
+export type RowFilter = {
+    column: string;
+    value: any;
+    operator: FilterOperator;
+};
+export type RowFilters = RowFilter[];
+
+export const isFilterOperator = (operator: unknown): operator is FilterOperator => {
+    return typeof operator === "string" && filterOperators.includes(operator as FilterOperator);
+};
+
+const buildFilterConditions = (
+    filters: RowFilters,
+    values: any[],
+    startIndex = 1
+) => {
+    let idx = startIndex;
+
+    const conditions = filters.map((filter) => {
+        values.push(filter.value);
+        return `"${filter.column}" ${filter.operator} $${idx++}`;
+    });
+
+    return { conditions, nextIndex: idx };
+};
+
 export const deleteRows = async (
     tableName: string,
     where: Record<string, any>
@@ -49,17 +77,11 @@ export const updateRows = async (
 
 export const countRows = async (
     tableName: string,
-    filters: Record<string, any>
+    filters: RowFilters
 ): Promise<number> => {
     let query = `SELECT COUNT(*) FROM "${tableName}"`;
     const values: any[] = [];
-    let idx = 1;
-
-    // filtering
-    const conditions = Object.entries(filters).map(([key, value]) => {
-        values.push(value);
-        return `"${key}" = $${idx++}`;
-    });
+    const { conditions } = buildFilterConditions(filters, values);
 
     if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");
@@ -71,7 +93,7 @@ export const countRows = async (
 
 export const getRows = async (
     tableName: string,
-    filters: Record<string, any>, // e.g. { column1: "value1", column2: 123 }
+    filters: RowFilters, // e.g. [{ column: "column1", operator: ">", value: 123 }]
     limit: number,
     offset: number,
     orderBy?: string,
@@ -84,13 +106,8 @@ export const getRows = async (
 
     let query = `SELECT ${selectClause} FROM "${tableName}"`;
     const values: any[] = [];
-    let idx = 1;
-
-    // filtering
-    const conditions = Object.entries(filters).map(([key, value]) => {
-        values.push(value);
-        return `"${key}" = $${idx++}`;
-    }); // results = ['"column1" = $1', '"column2" = $2']
+    const { conditions, nextIndex } = buildFilterConditions(filters, values);
+    let idx = nextIndex;
 
     if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");

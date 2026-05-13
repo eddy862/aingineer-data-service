@@ -11,10 +11,9 @@ export const parseCSV = (
         fs.createReadStream(filePath)
             .pipe(csv())
             .on("headers", (h) => {
-                headers = h;
+                headers = h; // capture headers from the first row
             })
             .on("data", (data) => {
-                // ignore empty rows
                 if (Object.keys(data).length > 0) {
                     rows.push(data);
                 }

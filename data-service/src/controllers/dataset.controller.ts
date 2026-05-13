@@ -1,4 +1,4 @@
-import { countRows, deleteRows, getAllTables, getPrimaryKey, getRows, getTableSchema, insertRows, isSerialPK, updateRows } from "../services/db.service";
+import { countRows, deleteRows, getAllTables, getPrimaryKey, getRows, getTableSchema, insertRows, isFilterOperator, isSerialPK, RowFilters, updateRows } from "../services/db.service";
 import { validColumns } from "../utils/schema.util";
 import { coerceRow } from "../utils/typeCoercion.util";
 
@@ -55,7 +55,7 @@ export const browseDataset = async (req: any, res: any) => {
         delete rawFilters.page;
         delete rawFilters.limit;
 
-        const filters: Record<string, any> = {};
+        const filters: RowFilters = [];
 
         // validate filter columns
         const [validCols, cols, primaryKey] = await Promise.all([
@@ -63,10 +63,45 @@ export const browseDataset = async (req: any, res: any) => {
             getTableSchema(tableName),
             getPrimaryKey(tableName),
         ]);
+        const schemaMap = new Map<string, string>(
+            cols.map((c: any) => [c.column_name, c.data_type])
+        );
 
         for (const key in rawFilters) {
+            if (key.endsWith("__op")) {
+                continue;
+            }
+
             if (validCols.has(key)) {
-                filters[key] = rawFilters[key];
+                const rawOperator = rawFilters[`${key}__op`];
+                const values = Array.isArray(rawFilters[key]) ? rawFilters[key] : [rawFilters[key]];
+                const operators = Array.isArray(rawOperator) ? rawOperator : [rawOperator || "="];
+
+                for (const [index, value] of values.entries()) {
+                    const operator = operators[index] || operators[0] || "=";
+
+                    if (!isFilterOperator(operator)) {
+                        return res.status(400).json({
+                            error: `Invalid operator "${operator}" for filter "${key}"`,
+                            hint: 'Supported filter operators are: =, >, <, <=, >=.'
+                        });
+                    }
+
+                    try {
+                        const coerced = coerceRow({ [key]: value }, schemaMap);
+
+                        filters.push({
+                            column: key,
+                            operator,
+                            value: coerced[key],
+                        });
+                    } catch (err: any) {
+                        return res.status(400).json({
+                            error: err.message,
+                            hint: "Ensure all filter values match their column types as defined in the dataset schema."
+                        });
+                    }
+                }
             }
         }
 
@@ -205,6 +240,7 @@ export const updateDataset = async (req: any, res: any) => {
 
         const coercedData = {};
   
+        // coerce update data values = convert the string values from the request into the appropriate types (e.g. numbers, booleans, dates) based on the dataset schema, so that they can be correctly stored in the database and match the column types defined in the dataset schema. This ensures data integrity and prevents type errors during the update operation.
         try {
             const coerced = coerceRow(data, schemaMap);
             Object.assign(coercedData, coerced);

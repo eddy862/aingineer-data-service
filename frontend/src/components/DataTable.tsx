@@ -8,8 +8,13 @@ export type Column = {
 
 type Filter = {
     column: string;
+    operator: FilterOperator;
     value: string;
 }
+
+type FilterOperator = "=" | ">" | "<" | "<=" | ">=";
+
+const filterOperators: FilterOperator[] = ["=", ">", "<", "<=", ">="];
 
 type PrimaryKey = {
     name: string;
@@ -30,7 +35,7 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
     const [total, setTotal] = useState(0);
 
     const [filters, setFilters] = useState<Filter[]>([
-        { column: "", value: "" }
+        { column: "", operator: "=", value: "" }
     ]);
 
     const [editingRow, setEditingRow] = useState<number | null>(null);
@@ -73,7 +78,7 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
             const orderedColumns = movePrimaryKeyFirst(res.data.columns, primaryKeyName);
 
             if (orderedColumns.length > 0) {
-                setFilters([{ column: orderedColumns[0].name, value: "" }]);
+                setFilters([{ column: orderedColumns[0].name, operator: "=", value: "" }]);
             }
         } catch (err) {
             console.error("Error fetching schema:", err);
@@ -82,23 +87,29 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
         }
     };
 
-    const fetchData = async () => {
+    const fetchData = async (pageOverride = page) => {
         setLoading(true);
+        setError(null);
         try {
-            let url = `datasets/${tableName}?page=${page}&limit=${limit}`;
+            const params = new URLSearchParams({
+                page: String(pageOverride),
+                limit: String(limit),
+            });
 
             filters.forEach((f) => {
                 if (f.value.trim() !== "" && f.column.trim() !== "") {
-                    url += `&${f.column}=${encodeURIComponent(f.value)}`;
+                    params.append(f.column, f.value);
+                    params.append(`${f.column}__op`, f.operator);
                 }
             });
 
-            const res = await api.get(url);
+            const res = await api.get(`datasets/${tableName}?${params.toString()}`);
             console.log("Fetched data:", res.data);
             setData(res.data.data);
             setTotal(res.data.total);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Error fetching data:", err);
+            setError("Failed to fetch data: " + err.response?.data?.error);
         } finally {
             setLoading(false);
         }
@@ -120,16 +131,33 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
     const totalPages = Math.ceil(total / limit);
 
     const addFilter = () => {
-        setFilters([...filters, { column: "", value: "" }]);
+        setFilters([...filters, { column: "", operator: "=", value: "" }]);
     };
 
     const removeFilter = (index: number) => {
         setFilters(filters.filter((_, i) => i !== index));
     }
 
-    const updateFilter = (index: number, field: "column" | "value", value: string) => {
+    const updateFilter = (index: number, field: keyof Filter, value: string) => {
         const newFilters = [...filters];
-        newFilters[index][field] = value;
+        const currentFilter = newFilters[index];
+
+        if (!currentFilter) {
+            return;
+        }
+
+        if (field === "operator") {
+            newFilters[index] = {
+                ...currentFilter,
+                operator: value as FilterOperator,
+            };
+        } else {
+            newFilters[index] = {
+                ...currentFilter,
+                [field]: value,
+            };
+        }
+
         setFilters(newFilters);
     };
 
@@ -148,7 +176,7 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
 
         } catch (err: any) {
             const msg = err.response?.data?.error || "Insert failed";
-            setError(msg);
+            setError("Failed to insert row: " + msg);
 
         } finally {
             setActionLoading(false);
@@ -172,7 +200,7 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
 
         } catch (err: any) {
             const msg = err.response?.data?.error || "Update failed";
-            setError(msg);
+            setError("Failed to update row: " + msg);
 
         } finally {
             setActionLoading(false);
@@ -197,7 +225,7 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
 
             } catch (err: any) {
                 const msg = err.response?.data?.error || "Delete failed";
-                setError(msg);
+                setError("Failed to delete row: " + msg);
 
             } finally {
                 setActionLoading(false);
@@ -238,6 +266,21 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
                             ))}
                         </select>
 
+                        <select
+                            value={f.operator}
+                            onChange={(e) =>
+                                updateFilter(index, "operator", e.target.value)
+                            }
+                            className="control control--operator"
+                            aria-label={`Operator for ${f.column || "filter"}`}
+                        >
+                            {filterOperators.map((operator) => (
+                                <option key={operator} value={operator}>
+                                    {operator}
+                                </option>
+                            ))}
+                        </select>
+
                         <input
                             placeholder="Value"
                             value={f.value}
@@ -262,7 +305,7 @@ export default function DataTable({ tableName, refreshToken = 0 }: Props) {
                     <button
                         onClick={() => {
                             setPage(1);
-                            fetchData();
+                            fetchData(1);
                         }}
                         disabled={loading}
                         className="btn btn--primary"
